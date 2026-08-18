@@ -59,9 +59,3 @@ jobs:
         run: |
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_models_offset_0_step_3
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_voice_conversion
-
-      - name: Upload CIntent Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-          name: ${{ env.CINTENT_ARTIFACT_NAME }}
-          path: ${{ env.CINTENT_LOGS }}
