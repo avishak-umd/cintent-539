@@ -38,9 +38,10 @@ jobs:
           # cache-dependency-path: 'requirements*'
 
       # CINTENT >> INSERT_CINTENT
-      - uses: clonedSemicolon/seytup-dynapyt@master
+      - name: Install DynaPyt and instrument repository
+        uses: clonedSemicolon/seytup-dynapyt@master
         with:
-          directory: my_package/
+          directory: "."
 
       - name: check OS
         run: cat /etc/os-release
