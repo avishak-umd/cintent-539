@@ -37,14 +37,6 @@ jobs:
           # cache: 'pip'
           # cache-dependency-path: 'requirements*'
 
-      - name: Start DynaPyt tracing
-        uses: clonedSemicolon/seytup-dynapyt@b8fc987384069274a7390e2e68a80e832a766df9
-        with:
-          targets: |
-            package:pip
-            directory:src
-          analysis: dynapyt.analyses.CallGraph.CallGraph
-
       - name: check OS
         run: cat /etc/os-release
       - name: set ENV
@@ -57,6 +49,19 @@ jobs:
           make system-deps
       - name: Install/upgrade Python setup deps
         run: python3 -m pip install --upgrade pip setuptools wheel
+
+      - name: Start DynaPyt tracing
+        uses: clonedSemicolon/seytup-dynapyt@b8fc987384069274a7390e2e68a80e832a766df9
+        with:
+          targets: |
+            package:pip
+            directory:TTS
+            directory:tests/zoo_tests
+            file:setup.py
+          analysis: dynapyt.analyses.CallGraph.CallGraph
+          dynapyt_path: git+https://github.com/sola-st/DynaPyt.git@07680e074c9f280c320f9e359500f672b662de7f
+
+          
       - name: Replace scarf urls
         run: |
           sed -i 's/https:\/\/coqui.gateway.scarf.sh\//https:\/\/github.com\/coqui-ai\/TTS\/releases\/download\//g' TTS/.models.json
@@ -69,9 +74,9 @@ jobs:
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_models_offset_0_step_3
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_voice_conversion
 
-      - name: Collect and upload traces
+      - name: Collect and upload all traces
         if: always()
         uses: clonedSemicolon/seytup-dynapyt@b8fc987384069274a7390e2e68a80e832a766df9
         with:
           mode: collect
-          artifact-name: dynapyt-${{ github.run_id }}-${{ github.job }}
+          artifact-name: dynapyt-${{ github.run_id }}-${{ github.job }}-${{ matrix.python-version }}
