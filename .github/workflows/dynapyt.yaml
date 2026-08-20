@@ -37,11 +37,13 @@ jobs:
           # cache: 'pip'
           # cache-dependency-path: 'requirements*'
 
-      # CINTENT >> INSERT_CINTENT
-      - name: Install DynaPyt and instrument repository
-        uses: clonedSemicolon/seytup-dynapyt@master
+      - name: Start DynaPyt tracing
+        uses: clonedSemicolon/seytup-dynapyt@b8fc987384069274a7390e2e68a80e832a766df9
         with:
-          directory: "."
+          targets: |
+            package:pip
+            directory:src
+          analysis: dynapyt.analyses.CallGraph.CallGraph
 
       - name: check OS
         run: cat /etc/os-release
@@ -67,9 +69,9 @@ jobs:
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_models_offset_0_step_3
           nose2 -F -v -B TTS tests.zoo_tests.test_models.test_voice_conversion
 
-      # CINTENT >> INSERT_CINTENT
-      - uses: actions/upload-artifact@v4
+      - name: Collect and upload traces
         if: always()
+        uses: clonedSemicolon/seytup-dynapyt@b8fc987384069274a7390e2e68a80e832a766df9
         with:
-          name: dynapyt-callgraph
-          path: dynapyt.json
+          mode: collect
+          artifact-name: dynapyt-${{ github.run_id }}-${{ github.job }}
