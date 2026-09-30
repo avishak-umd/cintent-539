@@ -59,11 +59,17 @@ jobs:
           head -8 pyproject.toml
       - name: Install TTS
         run: |
-          python3 -m pip install .[all]
+          set -o pipefail
+          python3 -m pip install .[all] 2>&1 \
+            | while IFS= read -r line; do echo "$(date +%s) $line"; done \
+            | tee /tmp/pip.log | cut -d' ' -f2-
           python3 setup.py egg_info
+      - name: Build-dependency summary
+        run: |
+          grep -E "build dependencies|numpy-1\.22|Building wheel for numpy" /tmp/pip.log | head -20 || true
       - name: Verify install
         run: |
-          python3 -c "import TTS.tts.utils.monotonic_align.core, numpy; print('extension OK, numpy', numpy.__version__)"
+          cd /tmp && python3 -c "import TTS.tts.utils.monotonic_align.core, numpy; print('extension OK, numpy', numpy.__version__)"
       - name: Environment fingerprint
         run: |
           echo "packages: $(python3 -m pip freeze | wc -l)"
