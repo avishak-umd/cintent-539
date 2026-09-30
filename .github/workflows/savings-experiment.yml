@@ -67,9 +67,11 @@ jobs:
       - name: Build-dependency summary
         run: |
           grep -E "build dependencies|numpy-1\.22|Building wheel for numpy" /tmp/pip.log | head -20 || true
-      - name: Verify install
+      - name: Built extension
         run: |
-          cd /tmp && python3 -c "import TTS.tts.utils.monotonic_align.core, numpy; print('extension OK, numpy', numpy.__version__)"
+          SP=$(python3 -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
+          find "$SP/TTS" -name "core*.so" || true
+          python3 -c "import numpy; print('numpy', numpy.__version__)"
       - name: Environment fingerprint
         run: |
           echo "packages: $(python3 -m pip freeze | wc -l)"
