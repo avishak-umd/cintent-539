@@ -4,6 +4,8 @@
 # Python 3.11 wheel. Fixed: the build requirements from the maintainers' fix
 # (coqui-ai/TTS 8bb2d65, PR #3001, "loosen dependencies to avoid building
 # from source"). One run each, same pinned source, no instrumentation.
+# Both variants run the workflow's own unit tests and print an environment
+# fingerprint, to confirm the fix does not change what the workflow checks.
 
 name: savings-experiment
 
@@ -38,6 +40,9 @@ jobs:
           make system-deps
       - name: Install/upgrade Python setup deps
         run: python3 -m pip install --upgrade pip setuptools wheel
+      - name: Replace scarf urls
+        run: |
+          sed -i 's/https:\/\/coqui.gateway.scarf.sh\//https:\/\/github.com\/coqui-ai\/TTS\/releases\/download\//g' TTS/.models.json
       - name: Apply fix
         if: matrix.variant == 'fixed'
         run: |
@@ -59,3 +64,11 @@ jobs:
       - name: Verify install
         run: |
           python3 -c "import TTS.tts.utils.monotonic_align.core, numpy; print('extension OK, numpy', numpy.__version__)"
+      - name: Environment fingerprint
+        run: |
+          echo "packages: $(python3 -m pip freeze | wc -l)"
+          echo "fingerprint: $(python3 -m pip freeze | grep -v '^TTS' | sort | sha256sum)"
+      - name: Unit tests
+        run: |
+          nose2 -F -v -B TTS tests.zoo_tests.test_models.test_models_offset_0_step_3
+          nose2 -F -v -B TTS tests.zoo_tests.test_models.test_voice_conversion
