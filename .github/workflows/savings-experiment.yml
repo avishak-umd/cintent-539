@@ -1,0 +1,61 @@
+# Measured-savings experiment for the TTS source-build bottleneck.
+# The traces showed pip compiling NumPy from source inside the isolated build
+# environment, because pyproject.toml pins numpy==1.22.0, which has no
+# Python 3.11 wheel. Fixed: the build requirements from the maintainers' fix
+# (coqui-ai/TTS 8bb2d65, PR #3001, "loosen dependencies to avoid building
+# from source"). 5 repetitions each, same pinned source, no instrumentation.
+
+name: savings-experiment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - savings-experiment
+
+jobs:
+  test:
+    name: ${{ matrix.variant }}-rep${{ matrix.rep }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, fixed]
+        rep: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          architecture: x64
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git make gcc
+          sudo apt-get install espeak espeak-ng
+          make system-deps
+      - name: Install/upgrade Python setup deps
+        run: python3 -m pip install --upgrade pip setuptools wheel
+      - name: Apply fix
+        if: matrix.variant == 'fixed'
+        run: |
+          python3 - <<'PY'
+          import re
+          p = "pyproject.toml"
+          s = open(p).read()
+          old = 'requires = ["setuptools", "wheel", "cython==0.29.30", "numpy==1.22.0", "packaging"]'
+          new = ('requires = [\n    "setuptools",\n    "wheel",\n    "cython~=0.29.30",\n'
+                 '    "numpy>=1.22.0",\n    "packaging",\n]')
+          assert old in s
+          open(p, "w").write(s.replace(old, new))
+          PY
+          head -8 pyproject.toml
+      - name: Install TTS
+        run: |
+          python3 -m pip install .[all]
+          python3 setup.py egg_info
+      - name: Verify install
+        run: |
+          python3 -c "import TTS.tts.utils.monotonic_align.core, numpy; print('extension OK, numpy', numpy.__version__)"
